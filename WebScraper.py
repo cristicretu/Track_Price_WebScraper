@@ -1,38 +1,72 @@
 import requests
 import sys
 from bs4 import BeautifulSoup
+import pymsgbox
 
-url = 'https://www.emag.ro/laptop-apple-macbook-air-13-inch-true-tone-procesor-apple-m1-8-nuclee-cpu-si-8-nuclee-gpu-8gb-512gb-gold-int-kb-mgne3ze-a/pd/DM6BL7MBM/?ref=graph_profiled_similar_c_1_2&provider=rec&recid=rec_49_16_u2034550492514704261_91_C_ca82e2f6feb80b89b31eba3cc94e74febcb355cd836da1444147626a4132d11f_1608575391&scenario_ID=49'
+# get the urls for the specific sites
+url_emag = 'https://www.emag.ro/laptop-apple-macbook-air-13-inch-true-tone-procesor-apple-m1-8-nuclee-cpu-si-7-nuclee-gpu-8gb-256gb-gold-int-kb-mgnd3ze-a/pd/DY6BL7MBM/'
+url_istyle = 'https://istyle.ro/macbook-air-13-3-m1-chip-8-core-cpu-256gb-ssd-space-grey.html'
 
+# user agent
 headers = {
-    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
-# sure thing buddy
+    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
 
 
-def doSmth():
-    return 2 + 3
-    # TO DO
-
-
+# check price for both sites
 def check_price():
-    page = requests.get(url, headers=headers)
+    # get requests
+    page_emag = requests.get(url_emag, headers=headers)
+    page_istyle = requests.get(url_istyle, headers=headers)
 
-    soup = BeautifulSoup(page.content, 'html.parser')
+    # parse the html
+    soup_istyle = BeautifulSoup(page_istyle.content, 'html.parser')
+    soup_emag = BeautifulSoup(page_emag.content, 'html.parser')
 
-    get_price = soup.find(class_="product-new-price").get_text()
-    price = float(get_price[:-7])
+    # get price from specific classes
+    get_price_istyle = soup_istyle.find(class_="price").get_text()
+    get_price_emag = soup_emag.find(class_="product-new-price").get_text()
 
-    return price
+    # convert to float
+    price_emag = float(get_price_emag[:-7])
+    price_istyle = float(get_price_istyle[:-7].replace(" ", "."))
+
+    return price_emag, price_istyle
 
 
+# read the last prices
 with open('/home/cristic/Projects/Track_Price_WebScraper/lastprice.txt', 'r') as f1:
-    last_price = float(f1.read())
+    str = f1.read()
+    last_price_emag, last_price_istyle = str.split()
+    last_price_emag = float(last_price_emag)
+    last_price_istyle = float(last_price_istyle)
 
-curr_price = check_price()
+# check the current price
+curr_price_emag, curr_price_istyle = check_price()
 
-if (curr_price < last_price):
-    doSmth()
 
+def check_low_price():
+    # check for lower prices than last time
+    if curr_price_emag < last_price_emag:
+        pymsgbox.alert('The price on Emag is lower than last time', 'Warning')
+        return
+
+    if curr_price_istyle < last_price_istyle:
+        pymsgbox.alert(
+            'The price on istyle is lower than last time', 'Warning')
+        return
+
+    pymsgbox.alert('Same price as last time', 'Warning')
+
+
+check_low_price()
+
+
+# write changes
 with open('/home/cristic/Projects/Track_Price_WebScraper/lastprice.txt', 'w') as f1:
     sys.stdout = f1
-    print(curr_price)
+    print(curr_price_emag)
+    print(curr_price_istyle)
+
+# TO DO:
+# run on startup
